@@ -2,15 +2,6 @@ import { createAzure } from "@ai-sdk/azure";
 import { generateText, streamText } from "ai";
 
 /**
- * Extract resource name from Azure OpenAI endpoint URL
- */
-function extractResourceName(endpoint: string): string {
-  // https://your-resource.openai.azure.com -> your-resource
-  const match = endpoint.match(/https:\/\/([^.]+)\.openai\.azure\.com/);
-  return match ? match[1] : "";
-}
-
-/**
  * Get Azure OpenAI client configuration
  */
 export function getAzureConfig() {
@@ -24,16 +15,11 @@ export function getAzureConfig() {
     );
   }
 
-  const resourceName = extractResourceName(endpoint);
-
-  if (!resourceName) {
-    throw new Error(
-      "Invalid AZURE_OPENAI_ENDPOINT format. Expected: https://your-resource.openai.azure.com"
-    );
-  }
+  // Normalize endpoint - remove trailing slash if present
+  const baseURL = endpoint.endsWith("/") ? endpoint.slice(0, -1) : endpoint;
 
   return {
-    resourceName,
+    baseURL,
     apiKey,
     deployment,
   };
@@ -44,10 +30,10 @@ export function getAzureConfig() {
  * Note: API version is read from AZURE_API_VERSION env var automatically by the SDK
  */
 export function createAzureProvider() {
-  const { resourceName, apiKey } = getAzureConfig();
+  const { baseURL, apiKey } = getAzureConfig();
 
   return createAzure({
-    resourceName,
+    baseURL,
     apiKey,
   });
 }
