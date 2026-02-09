@@ -17,7 +17,6 @@ export function getAzureConfig() {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
   const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
-  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-08-01-preview";
 
   if (!endpoint || !apiKey) {
     throw new Error(
@@ -37,20 +36,19 @@ export function getAzureConfig() {
     resourceName,
     apiKey,
     deployment,
-    apiVersion,
   };
 }
 
 /**
  * Create Azure OpenAI provider
+ * Note: API version is read from AZURE_API_VERSION env var automatically by the SDK
  */
 export function createAzureProvider() {
-  const { resourceName, apiKey, apiVersion } = getAzureConfig();
+  const { resourceName, apiKey } = getAzureConfig();
 
   return createAzure({
     resourceName,
     apiKey,
-    apiVersion,
   });
 }
 
