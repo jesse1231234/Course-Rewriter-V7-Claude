@@ -1,6 +1,3 @@
-import { createAzure } from "@ai-sdk/azure";
-import { generateText, streamText } from "ai";
-
 /**
  * Get Azure OpenAI client configuration
  */
@@ -8,6 +5,7 @@ export function getAzureConfig() {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
   const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
+  const apiVersion = process.env.AZURE_API_VERSION || "2024-12-01-preview";
 
   if (!endpoint || !apiKey) {
     throw new Error(
@@ -22,64 +20,78 @@ export function getAzureConfig() {
     baseURL,
     apiKey,
     deployment,
+    apiVersion,
+  };
+}
+
+interface AzureOpenAIResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+  error?: {
+    message: string;
+    code: string;
   };
 }
 
 /**
- * Create Azure OpenAI provider
- * Note: API version is read from AZURE_API_VERSION env var automatically by the SDK
- */
-export function createAzureProvider() {
-  const { baseURL, apiKey } = getAzureConfig();
-
-  return createAzure({
-    baseURL,
-    apiKey,
-  });
-}
-
-/**
- * Generate text response from Azure OpenAI
+ * Generate text response from Azure OpenAI using REST API directly
  */
 export async function generateLLMResponse(
   systemPrompt: string,
   userPrompt: string,
   options: { temperature?: number } = {}
 ): Promise<string> {
-  const azure = createAzureProvider();
-  const { deployment } = getAzureConfig();
-  const model = azure(deployment);
+  const { baseURL, apiKey, deployment, apiVersion } = getAzureConfig();
 
-  const result = await generateText({
-    model,
-    system: systemPrompt,
-    prompt: userPrompt,
-    temperature: options.temperature ?? 0,
+  const url = `${baseURL}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+
+  console.log("Azure OpenAI request URL:", url);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": apiKey,
+    },
+    body: JSON.stringify({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: options.temperature ?? 0,
+    }),
   });
 
-  return result.text;
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Azure OpenAI error response:", errorText);
+    throw new Error(`Azure OpenAI error: ${response.status} - ${errorText}`);
+  }
+
+  const data: AzureOpenAIResponse = await response.json();
+
+  if (data.error) {
+    throw new Error(`Azure OpenAI error: ${data.error.code} - ${data.error.message}`);
+  }
+
+  return data.choices[0]?.message?.content || "";
 }
 
 /**
- * Stream text response from Azure OpenAI
+ * Stream text response from Azure OpenAI (simplified non-streaming for now)
  */
 export async function streamLLMResponse(
   systemPrompt: string,
   userPrompt: string,
   options: { temperature?: number } = {}
 ) {
-  const azure = createAzureProvider();
-  const { deployment } = getAzureConfig();
-  const model = azure(deployment);
-
-  const result = streamText({
-    model,
-    system: systemPrompt,
-    prompt: userPrompt,
-    temperature: options.temperature ?? 0,
-  });
-
-  return result;
+  // For simplicity, just return the full response
+  // Can implement true streaming later if needed
+  const text = await generateLLMResponse(systemPrompt, userPrompt, options);
+  return { text };
 }
 
 /**
