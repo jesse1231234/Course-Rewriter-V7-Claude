@@ -11,7 +11,7 @@ async function fetchAllPages<T>(
   let url: string | null = `${baseUrl}/api/v1${endpoint}`;
 
   while (url) {
-    const response = await fetch(url, {
+    const response: Response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
