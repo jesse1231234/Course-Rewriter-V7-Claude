@@ -147,12 +147,13 @@ async function updateDiscussion(
 
 export async function POST(request: NextRequest) {
   try {
-    const canvasBaseUrl = request.headers.get("X-Canvas-Base-URL");
-    const canvasToken = request.headers.get("X-Canvas-Token");
+    // Use headers if provided, otherwise fall back to env variables
+    const canvasBaseUrl = request.headers.get("X-Canvas-Base-URL") || process.env.CANVAS_BASE_URL;
+    const canvasToken = request.headers.get("X-Canvas-Token") || process.env.CANVAS_API_TOKEN;
 
     if (!canvasBaseUrl || !canvasToken) {
       return NextResponse.json(
-        { error: "Missing Canvas credentials" },
+        { error: "Missing Canvas credentials. Provide via headers or set CANVAS_BASE_URL and CANVAS_API_TOKEN environment variables." },
         { status: 400 }
       );
     }
