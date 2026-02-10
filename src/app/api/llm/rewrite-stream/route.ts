@@ -5,19 +5,19 @@ import {
   buildRewritePrompt,
 } from "@/config/designtools-system";
 
-export const runtime = "edge";
+// Using Node.js runtime for better env variable support
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json().catch(() => ({}));
     const {
       item,
-      globalInstructions,
-      itemSpecificInstructions,
-      modelStyleGuide,
-      modelSignatureSnippets,
-      modelContextForFlags,
-      preserveExistingDesignTools,
-    } = await request.json();
+      globalInstructions = "",
+      itemSpecificInstructions = "",
+      modelStyleGuide = "",
+      modelSignatureSnippets = "",
+      preserveExistingDesignTools = false,
+    } = body || {};
 
     if (!item || !item.html) {
       return new Response(JSON.stringify({ error: "Missing item or item.html" }), {
