@@ -212,7 +212,7 @@ export default function RewritePage() {
     return html.trim();
   };
 
-  // Streaming rewrite for a single item
+  // Streaming rewrite for a single item (with fallback to non-streaming)
   const rewriteItemStreaming = useCallback(
     async (item: CourseItem): Promise<boolean> => {
       const key = itemKey(item);
@@ -239,13 +239,16 @@ export default function RewritePage() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Streaming rewrite failed");
+          // Fallback to non-streaming endpoint
+          console.log("Streaming failed, falling back to non-streaming");
+          setIsStreaming(false);
+          return rewriteItem(item);
         }
 
         const reader = response.body?.getReader();
         if (!reader) {
-          throw new Error("No response body");
+          setIsStreaming(false);
+          return rewriteItem(item);
         }
 
         const decoder = new TextDecoder();
@@ -278,30 +281,41 @@ export default function RewritePage() {
 
         setIsStreaming(false);
 
+        // If no content was received, fallback to non-streaming
+        if (!fullContent.trim()) {
+          console.log("No streaming content received, falling back");
+          return rewriteItem(item);
+        }
+
         // Normalize the final content
         const rewrittenHtml = normalizeHtml(fullContent);
 
         // Now validate with the regular endpoint
-        const validateResponse = await fetch("/api/llm/validate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            originalHtml: item.html,
-            rewrittenHtml,
-            modelContext: modelContext || modelStyleGuide,
-          }),
-        });
-
-        if (validateResponse.ok) {
-          const validateData = await validateResponse.json();
-          if (validateData.violations && validateData.violations.length > 0) {
-            updateItem(key, {
+        try {
+          const validateResponse = await fetch("/api/llm/validate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              originalHtml: item.html,
               rewrittenHtml,
-              status: "error",
-              error: validateData.violations.join("; "),
-            });
-            return false;
+              modelContext: modelContext || modelStyleGuide,
+            }),
+          });
+
+          if (validateResponse.ok) {
+            const validateData = await validateResponse.json();
+            if (validateData.violations && validateData.violations.length > 0) {
+              updateItem(key, {
+                rewrittenHtml,
+                status: "error",
+                error: validateData.violations.join("; "),
+              });
+              return false;
+            }
           }
+        } catch (validateErr) {
+          console.error("Validation error:", validateErr);
+          // Continue anyway - validation is optional
         }
 
         updateItem(key, {
@@ -312,12 +326,9 @@ export default function RewritePage() {
         return true;
       } catch (err: unknown) {
         setIsStreaming(false);
-        const message = err instanceof Error ? err.message : "Unknown error";
-        updateItem(key, {
-          status: "error",
-          error: message,
-        });
-        return false;
+        console.error("Streaming error:", err);
+        // Fallback to non-streaming on any error
+        return rewriteItem(item);
       }
     },
     [
@@ -330,6 +341,7 @@ export default function RewritePage() {
       modelContext,
       preserveExistingDesignTools,
       updateItem,
+      rewriteItem,
     ]
   );
 
