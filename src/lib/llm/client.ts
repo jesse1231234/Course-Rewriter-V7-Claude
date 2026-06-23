@@ -5,7 +5,6 @@ export function getAzureConfig() {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
   const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
-  const apiVersion = process.env.AZURE_API_VERSION || "2024-12-01-preview";
 
   if (!endpoint || !apiKey) {
     throw new Error(
@@ -20,7 +19,6 @@ export function getAzureConfig() {
     baseURL,
     apiKey,
     deployment,
-    apiVersion,
   };
 }
 
@@ -44,9 +42,9 @@ export async function generateLLMResponse(
   userPrompt: string,
   options: { temperature?: number } = {}
 ): Promise<string> {
-  const { baseURL, apiKey, deployment, apiVersion } = getAzureConfig();
+  const { baseURL, apiKey, deployment } = getAzureConfig();
 
-  const url = `${baseURL}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+  const url = `${baseURL}/chat/completions`;
 
   console.log("Azure OpenAI request URL:", url);
 
@@ -57,6 +55,7 @@ export async function generateLLMResponse(
       "api-key": apiKey,
     },
     body: JSON.stringify({
+      model: deployment,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
