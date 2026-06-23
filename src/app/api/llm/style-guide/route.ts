@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
     console.log("Azure config:", {
       baseURL: config.baseURL,
       deployment: config.deployment,
-      apiVersion: process.env.AZURE_API_VERSION || "default",
     });
 
     const userPrompt = buildStyleGuidePrompt(modelContext);
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       error: message,
       details,
-      hint: "Check AZURE_OPENAI_DEPLOYMENT matches your deployment name exactly, and AZURE_API_VERSION is compatible (try 2024-02-15-preview)"
+      hint: "Check AZURE_OPENAI_DEPLOYMENT matches your deployment name exactly, and AZURE_OPENAI_ENDPOINT ends with /openai/v1"
     }, { status: 500 });
   }
 }
