@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { baseURL, apiKey, deployment, apiVersion } = getAzureConfig();
+    const { baseURL, apiKey, deployment } = getAzureConfig();
 
     // Build the rewrite prompt
     const userPrompt = buildRewritePrompt(
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    const url = `${baseURL}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+    const url = `${baseURL}/chat/completions`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
         "api-key": apiKey,
       },
       body: JSON.stringify({
+        model: deployment,
         messages: [
           { role: "system", content: DESIGNTOOLS_SYSTEM },
           { role: "user", content: userPrompt },
