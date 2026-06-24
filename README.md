@@ -2,7 +2,7 @@
 
 A Next.js application for rewriting Canvas LMS course content to match a model course's DesignTools/DesignPLUS styling using Azure OpenAI.
 
-## Features
+## Features 
 
 - **5-Step Workflow**:
   1. **Connect + Load**: Connect to Canvas LMS and load pages, assignments, and discussions
